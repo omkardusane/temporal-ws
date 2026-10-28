@@ -1,5 +1,7 @@
 # Docs
 
+[![CI](https://github.com/omkardusane/temporal-ws/actions/workflows/ci.yml/badge.svg)](https://github.com/omkardusane/temporal-ws/actions/workflows/ci.yml)
+
 - [change-email-flow.md](./docs/change-email-flow.md): sequence, contracts, mocks and test scenarios for the change-email use case.
 
 ## Repo layout
