@@ -20,7 +20,7 @@ export class MockUsersServiceClient implements UsersServiceClient {
   public getEmail(userId: string): Promise<string> {
     const user = this.users.get(userId);
     if (!user) {
-      throw new Error(`unknown user: ${userId}`);
+      return Promise.reject(new Error(`unknown user: ${userId}`));
     }
     return Promise.resolve(user.email);
   }

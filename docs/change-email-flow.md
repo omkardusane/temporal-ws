@@ -20,15 +20,15 @@ Signal `cancel` is accepted at any point before step 6.
 
 ## Temporal features this shows
 
-| Feature            | Where                                                                  |
-| ------------------ | ---------------------------------------------------------------------- |
-| Signals            | `submitOldOtp`, `submitNewOtp`, `cancel`                               |
-| Queries            | `getState` returns the current phase                                   |
-| Timers / timeouts  | `condition(..., ttl)` per OTP step                                     |
-| Activity retries   | mail send fails transiently and is retried (`MockEmailClient.failNext`)|
-| Idempotency        | `commitEmailChange` keyed by workflow id, safe to retry                |
-| Business workflow id | `change-email-${userId}`: one in-flight change per user              |
-| Determinism        | OTP generated and verified in activities, never in workflow code       |
+| Feature              | Where                                                                   |
+| -------------------- | ----------------------------------------------------------------------- |
+| Signals              | `submitOldOtp`, `submitNewOtp`, `cancel`                                |
+| Queries              | `getState` returns the current phase                                    |
+| Timers / timeouts    | `condition(..., ttl)` per OTP step                                      |
+| Activity retries     | mail send fails transiently and is retried (`MockEmailClient.failNext`) |
+| Idempotency          | `commitEmailChange` keyed by workflow id, safe to retry                 |
+| Business workflow id | `change-email-${userId}`: one in-flight change per user                 |
+| Determinism          | OTP generated and verified in activities, never in workflow code        |
 
 ## Contracts
 
@@ -37,8 +37,7 @@ Task queue: `change-email`.
 ```ts
 // types.ts
 type ChangeEmailInput = { userId: string; newEmail: string };
-type ChangeEmailPhase =
-  | 'validating' | 'awaiting-old-otp' | 'awaiting-new-otp' | 'committing' | 'done';
+type ChangeEmailPhase = 'validating' | 'awaiting-old-otp' | 'awaiting-new-otp' | 'committing' | 'done';
 type ChangeEmailResult =
   | { status: 'completed' }
   | { status: 'email-taken' }
@@ -51,14 +50,14 @@ Signals and query (`signals.ts`): `submitOldOtp(code: string)`, `submitNewOtp(co
 
 Activities (`createActivities({ emailClient, usersClient })`):
 
-| Activity                                     | Returns                      |
-| -------------------------------------------- | ---------------------------- |
-| `getCurrentEmail(userId)`                    | `string`                     |
-| `assertEmailAvailable(email)`                | `boolean` (true = available) |
-| `sendOtp({ to, purpose })`                   | `{ otpHash: string }`        |
-| `verifyOtp({ otp, otpHash })`                | `boolean`                    |
-| `commitEmailChange({ userId, newEmail, idempotencyKey })` | `void`          |
-| `notifyEmailChanged({ to, newEmail })`       | `void`                       |
+| Activity                                                  | Returns                      |
+| --------------------------------------------------------- | ---------------------------- |
+| `getCurrentEmail(userId)`                                 | `string`                     |
+| `assertEmailAvailable(email)`                             | `boolean` (true = available) |
+| `sendOtp({ to, purpose })`                                | `{ otpHash: string }`        |
+| `verifyOtp({ otp, otpHash })`                             | `boolean`                    |
+| `commitEmailChange({ userId, newEmail, idempotencyKey })` | `void`                       |
+| `notifyEmailChanged({ to, newEmail })`                    | `void`                       |
 
 `purpose` is `'old-email' | 'new-email'` and only affects the mail subject/body. The plaintext OTP exists only inside `sendOtp` and in the mailed message; the workflow only ever holds the hash.
 

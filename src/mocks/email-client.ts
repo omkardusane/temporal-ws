@@ -10,7 +10,6 @@ export class MockEmailClient implements EmailClient {
 
   public failNext(n: number): void {
     this.pendingFailures = n;
-    throw new Error('mock email send failed');
   }
 
   public async send(to: string, subject: string, body: string): Promise<void> {

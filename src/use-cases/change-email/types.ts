@@ -6,12 +6,7 @@ export function changeEmailWorkflowId(userId: string): string {
 
 export type ChangeEmailInput = { userId: string; newEmail: string };
 
-export type ChangeEmailPhase =
-  | 'validating'
-  | 'awaiting-old-otp'
-  | 'awaiting-new-otp'
-  | 'committing'
-  | 'done';
+export type ChangeEmailPhase = 'validating' | 'awaiting-old-otp' | 'awaiting-new-otp' | 'committing' | 'done';
 
 export type ChangeEmailResult =
   | { status: 'completed' }
