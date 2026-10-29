@@ -61,6 +61,8 @@ Activities (`createActivities({ emailClient, usersClient })`):
 
 `purpose` is `'old-email' | 'new-email'` and only affects the mail subject/body. The plaintext OTP exists only inside `sendOtp` and in the mailed message; the workflow only ever holds the hash.
 
+Workflow settings (`workflows.ts`): activities use `startToCloseTimeout` 30 seconds and retry up to 5 attempts starting at 1 second. Each OTP step waits at most 10 minutes (`OTP_TTL`) and allows 3 wrong codes (`MAX_ATTEMPTS`). Attempts reset between the old and new OTP steps.
+
 ## Mocks
 
 - `MockEmailClient`: `send(to, subject, body)`, `sent[]`, `lastTo(addr)`, `failNext(n)`, `clear()`.
