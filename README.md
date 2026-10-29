@@ -1,10 +1,25 @@
-# Docs
+# temporal-use-cases
 
 [![CI](https://github.com/omkardusane/temporal-ws/actions/workflows/ci.yml/badge.svg)](https://github.com/omkardusane/temporal-ws/actions/workflows/ci.yml)
 
-- [change-email-flow.md](./docs/change-email-flow.md): sequence, contracts, mocks and test scenarios for the change-email use case.
+Small, runnable examples of real-world Temporal workflows in TypeScript. Each use case has a workflow, activities that call mocked external services, and integration tests that run the real workflow against Temporal's test server.
 
-## Repo layout
+## Use cases
+
+| Use case                                    | Demonstrates                                                  |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| [Change email](./docs/change-email-flow.md) | signals, queries, timers, activity retries, idempotent commit |
+
+## Run
+
+```bash
+npm install
+npm test
+```
+
+No Temporal server is needed: the tests use `TestWorkflowEnvironment`, which downloads a test server binary on first run.
+
+## Layout
 
 ```
 src/
@@ -15,9 +30,6 @@ docs/                         design notes per use case
 agents/                       task breakdown for a local LLM (opencode)
 ```
 
-Rules of thumb:
-
-- Mock the world, not Temporal. Tests run real workflows against `TestWorkflowEnvironment`.
+- Mock the world, not Temporal.
 - Activities receive their clients by injection (`createActivities({ ... })`).
 - Workflow files are named `workflows.ts` so the ESLint node-builtin ban applies to them.
-- Tests are `*.test.ts`, run by `npm test` (mocha).
