@@ -1,13 +1,22 @@
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import type { EmailClient } from '../../mocks/email-client';
-import type { UsersServiceClient } from '../../mocks/users-service-client';
+import { ApplicationFailure } from '@temporalio/activity';
+import { UnknownUserError, type UsersServiceClient } from '../../mocks/users-service-client';
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest();
 
 export function createActivities(deps: { emailClient: EmailClient; usersClient: UsersServiceClient }) {
   return {
     async getCurrentEmail(userId: string): Promise<string> {
-      return deps.usersClient.getEmail(userId);
+      try {
+        return await deps.usersClient.getEmail(userId);
+      } catch (err) {
+        if (err instanceof UnknownUserError) {
+          // retrying will not make the user appear
+          throw ApplicationFailure.nonRetryable(err.message, 'UnknownUser');
+        }
+        throw err;
+      }
     },
 
     async assertEmailAvailable(email: string): Promise<boolean> {

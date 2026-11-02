@@ -53,7 +53,15 @@ async function main(): Promise<void> {
   await connection.close();
 }
 
+const rootMessage = (err: unknown): string => {
+  let current = err;
+  while (typeof current === 'object' && current !== null && 'cause' in current && current.cause) {
+    current = current.cause;
+  }
+  return current instanceof Error ? current.message : String(current);
+};
+
 main().catch((err: unknown) => {
-  console.error(err);
+  console.error(rootMessage(err));
   process.exit(1);
 });

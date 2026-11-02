@@ -1,3 +1,10 @@
+export class UnknownUserError extends Error {
+  constructor(userId: string) {
+    super(`unknown user: ${userId}`);
+    this.name = 'UnknownUserError';
+  }
+}
+
 export interface UsersServiceClient {
   getEmail(userId: string): Promise<string>;
   isEmailTaken(email: string): Promise<boolean>;
@@ -20,7 +27,7 @@ export class MockUsersServiceClient implements UsersServiceClient {
   public getEmail(userId: string): Promise<string> {
     const user = this.users.get(userId);
     if (!user) {
-      return Promise.reject(new Error(`unknown user: ${userId}`));
+      return Promise.reject(new UnknownUserError(userId));
     }
     return Promise.resolve(user.email);
   }
@@ -34,7 +41,7 @@ export class MockUsersServiceClient implements UsersServiceClient {
   public updateEmail(userId: string, newEmail: string, idempotencyKey: string): Promise<void> {
     const user = this.users.get(userId);
     if (!user) {
-      return Promise.reject(new Error(`unknown user: ${userId}`));
+      return Promise.reject(new UnknownUserError(userId));
     }
     if (user.idempotencyKeys.has(idempotencyKey)) {
       return Promise.resolve();
