@@ -19,10 +19,27 @@ npm test
 
 No Temporal server is needed: the tests use `TestWorkflowEnvironment`, which downloads a test server binary on first run.
 
+## Try it against a dev server
+
+Three terminals, with the [Temporal CLI](https://docs.temporal.io/cli) installed:
+
+```bash
+temporal server start-dev            # server + UI at http://localhost:8233
+npm run dev:worker                   # worker; mails (OTPs) are printed here
+npm run dev:client start             # starts the workflow for user-1
+npm run dev:client state             # { phase: 'awaiting-old-otp', ... }
+npm run dev:client old <code>        # code from the worker log
+npm run dev:client new <code>        # code from the second mail
+npm run dev:client result            # { status: 'completed' }
+```
+
+`cancel` and `result` also work; run `npm run dev:client` for usage. Watch the run in the UI while you go.
+
 ## Layout
 
 ```
 src/
+  dev/                        worker + CLI client for running against a dev server
   mocks/                      fake external clients (email, users service)
   use-cases/<name>/           workflows.ts, activities.ts, signals.ts, types.ts
 tests/integration/<name>/     end-to-end tests: real Temporal test server + mocks
