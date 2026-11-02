@@ -1,7 +1,7 @@
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import type { EmailClient } from '../../mocks/email-client';
 import { ApplicationFailure } from '@temporalio/activity';
-import { UnknownUserError, type UsersServiceClient } from '../../mocks/users-service-client';
+import { EmailTakenError, UnknownUserError, type UsersServiceClient } from '../../mocks/users-service-client';
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest();
 
@@ -37,7 +37,15 @@ export function createActivities(deps: { emailClient: EmailClient; usersClient: 
     },
 
     async commitEmailChange(args: { userId: string; newEmail: string; idempotencyKey: string }): Promise<void> {
-      await deps.usersClient.updateEmail(args.userId, args.newEmail, args.idempotencyKey);
+      try {
+        await deps.usersClient.updateEmail(args.userId, args.newEmail, args.idempotencyKey);
+      } catch (err) {
+        if (err instanceof EmailTakenError) {
+          // someone else committed this address after our availability check
+          throw ApplicationFailure.nonRetryable(err.message, 'EmailTaken');
+        }
+        throw err;
+      }
     },
 
     async notifyEmailChanged({ to, newEmail }: { to: string; newEmail: string }): Promise<void> {

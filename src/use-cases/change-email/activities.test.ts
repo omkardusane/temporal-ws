@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/activity';
 import { MockActivityEnvironment } from '@temporalio/testing';
 import { beforeEach, describe, it } from 'mocha';
 import assert from 'assert';
@@ -63,5 +64,14 @@ describe('change-email activities', () => {
 
   it('getCurrentEmail rejects for an unknown user', async () => {
     await assert.rejects(env.run(activities.getCurrentEmail, 'nobody'));
+  });
+
+  it('commitEmailChange fails without retries when another user holds the address', async () => {
+    usersClient.seed('user-2', 'other@example.com');
+    await assert.rejects(
+      env.run(activities.commitEmailChange, { userId: 'user-1', newEmail: 'OTHER@example.com', idempotencyKey: 'k1' }),
+      (err: unknown) => err instanceof ApplicationFailure && err.nonRetryable && err.type === 'EmailTaken',
+    );
+    assert.equal(await usersClient.getEmail('user-1'), 'old@example.com');
   });
 });

@@ -1,4 +1,11 @@
-import { condition, proxyActivities, setHandler, workflowInfo } from '@temporalio/workflow';
+import {
+  ActivityFailure,
+  ApplicationFailure,
+  condition,
+  proxyActivities,
+  setHandler,
+  workflowInfo,
+} from '@temporalio/workflow';
 import type { ChangeEmailActivities } from './activities';
 import { cancel, getState, submitNewOtp, submitOldOtp } from './signals';
 import type { ChangeEmailInput, ChangeEmailPhase, ChangeEmailResult } from './types';
@@ -75,11 +82,18 @@ export async function changeEmail(input: ChangeEmailInput): Promise<ChangeEmailR
   }
 
   phase = 'committing';
-  await commitEmailChange({
-    userId: input.userId,
-    newEmail: input.newEmail,
-    idempotencyKey: workflowInfo().workflowId,
-  });
+  try {
+    await commitEmailChange({
+      userId: input.userId,
+      newEmail: input.newEmail,
+      idempotencyKey: workflowInfo().workflowId,
+    });
+  } catch (err) {
+    if (err instanceof ActivityFailure && err.cause instanceof ApplicationFailure && err.cause.type === 'EmailTaken') {
+      return { status: 'email-taken' };
+    }
+    throw err;
+  }
 
   try {
     await notifyEmailChanged({ to: oldEmail, newEmail: input.newEmail });
