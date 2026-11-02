@@ -8,7 +8,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "test": "mocha --exit --require ts-node/register --require source-map-support/register 'src/**/*.test.ts' 'tests/**/*.test.ts'"
+    "test": "mocha --exit --require ts-node/register --require source-map-support/register 'src/**/*.test.ts' 'tests/**/*.test.ts'",
+    "dev:worker": "ts-node src/dev/worker.ts",
+    "dev:client": "ts-node src/dev/client.ts"
   },
   "dependencies": {
     "@temporalio/activity": "^1.24.0",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@temporalio/testing": "^1.24.0",
+    "@tsconfig/node24": "^24.0.0",
     "@types/mocha": "10.x",
     "@types/node": "^22.9.1",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
@@ -29,7 +32,6 @@
     "mocha": "10.x",
     "prettier": "^3.4.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3",
-    "@tsconfig/node24": "^24.0.0"
+    "typescript": "^5.6.3"
   }
 }
