@@ -9,10 +9,17 @@ const USAGE = `usage:
   client new <code> [userId]
   client state [userId]
   client cancel [userId]
-  client result [userId]`;
+  client result [userId]
+  client users [userId]      current emails in the worker's mock users service`;
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
+  if (command === 'users') {
+    const res = await fetch(`http://127.0.0.1:${process.env.DEV_USERS_PORT ?? 7300}`);
+    const users = (await res.json()) as { userId: string; email: string }[];
+    console.table(args[0] ? users.filter((u) => u.userId === args[0]) : users);
+    return;
+  }
   const connection = await Connection.connect({ address: process.env.TEMPORAL_ADDRESS ?? 'localhost:7233' });
   const client = new Client({ connection });
   const handleFor = (userId = 'user-1') => client.workflow.getHandle(changeEmailWorkflowId(userId));

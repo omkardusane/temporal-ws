@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { NativeConnection, Worker } from '@temporalio/worker';
 import { MockEmailClient } from '../mocks/email-client';
 import { MockUsersServiceClient } from '../mocks/users-service-client';
@@ -24,6 +25,13 @@ async function main(): Promise<void> {
     workflowsPath: require.resolve('../use-cases/change-email/workflows'),
     activities: createActivities({ emailClient: new ConsoleEmailClient(), usersClient }),
   });
+  // Dev only: read-only view of the in-memory users, used by `client users`.
+  const usersPort = Number(process.env.DEV_USERS_PORT ?? 7300);
+  createServer((_req, res) => {
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify(usersClient.list()));
+  }).listen(usersPort, '127.0.0.1');
+  console.log(`users snapshot at http://127.0.0.1:${usersPort}`);
   console.log(`worker listening on task queue "${CHANGE_EMAIL_TASK_QUEUE}"`);
   await worker.run();
 }

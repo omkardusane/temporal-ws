@@ -50,4 +50,8 @@ export class MockUsersServiceClient implements UsersServiceClient {
     user.idempotencyKeys.add(idempotencyKey);
     return Promise.resolve();
   }
+
+  public list(): { userId: string; email: string }[] {
+    return [...this.users.values()].map(({ userId, email }) => ({ userId, email }));
+  }
 }
