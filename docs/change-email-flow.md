@@ -12,7 +12,8 @@ start(userId, newEmail)
   3. wait for signal submitOldOtp(code)        -> verifyOtp; max 3 attempts, 10 min TTL
   4. sendOtp(new email)                        -> OTP #2 mailed
   5. wait for signal submitNewOtp(code)        -> verifyOtp; max 3 attempts, 10 min TTL
-  6. commitEmailChange(userId, newEmail)       -> the "flip", idempotent
+  6. commitEmailChange(userId, newEmail)       -> the "flip", idempotent; fails with email-taken if
+                                                  another user claimed the address since step 1
   7. notifyEmailChanged(old email)             -> courtesy mail, best effort
 ```
 
@@ -78,3 +79,4 @@ Both implement an interface (`EmailClient`, `UsersServiceClient`) that a real cl
 4. New email already taken: `email-taken`, no mail sent.
 5. Mail client fails twice then succeeds: still completes.
 6. `cancel` while awaiting the new OTP: `cancelled`, email unchanged.
+7. Two users start with the same new email, the first commits: the second gets `email-taken` at commit and its email is unchanged. The availability check in step 1 does not reserve the address.

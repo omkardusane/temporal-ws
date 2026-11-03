@@ -57,6 +57,7 @@ describe('change-email flow', function () {
     usersClient = new MockUsersServiceClient();
     usersClient.seed('user-1', OLD);
     usersClient.seed('user-2', TAKEN);
+    usersClient.seed('user-3', 'other@example.com');
     worker = await Worker.create({
       connection: testEnv.nativeConnection,
       taskQueue: CHANGE_EMAIL_TASK_QUEUE,
@@ -150,5 +151,34 @@ describe('change-email flow', function () {
       const result = await handle.result();
       assert.deepEqual(result, { status: 'cancelled', phase: 'awaiting-new-otp' });
       assert.equal(await usersClient.getEmail('user-1'), OLD);
+    }));
+
+  it('rejects at commit when another user claimed the address after the availability check', () =>
+    run(async () => {
+      const first = await start();
+      const second = await testEnv.client.workflow.start(changeEmail, {
+        taskQueue: CHANGE_EMAIL_TASK_QUEUE,
+        workflowId: changeEmailWorkflowId('user-3'),
+        args: [{ userId: 'user-3', newEmail: NEW }],
+      });
+      // both passed assertEmailAvailable: neither has committed yet
+      const firstOld = await waitForMail(emailClient, OLD);
+      const secondOld = await waitForMail(emailClient, 'other@example.com');
+
+      await first.signal(submitOldOtp, otpFrom(firstOld));
+      await waitForMail(emailClient, NEW);
+      await first.signal(submitNewOtp, otpFrom(emailClient.lastTo(NEW) as SentEmail));
+      assert.deepEqual(await first.result(), { status: 'completed' });
+
+      await second.signal(submitOldOtp, otpFrom(secondOld));
+      for (let i = 0; emailClient.sent.filter((m) => m.to === NEW).length < 2; i += 1) {
+        assert.ok(i < 250, 'second new-email mail never arrived');
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      await second.signal(submitNewOtp, otpFrom(emailClient.lastTo(NEW) as SentEmail));
+
+      assert.deepEqual(await second.result(), { status: 'email-taken' });
+      assert.equal(await usersClient.getEmail('user-1'), NEW);
+      assert.equal(await usersClient.getEmail('user-3'), 'other@example.com');
     }));
 });

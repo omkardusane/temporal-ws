@@ -5,6 +5,13 @@ export class UnknownUserError extends Error {
   }
 }
 
+export class EmailTakenError extends Error {
+  constructor(email: string) {
+    super(`email already in use: ${email}`);
+    this.name = 'EmailTakenError';
+  }
+}
+
 export interface UsersServiceClient {
   getEmail(userId: string): Promise<string>;
   isEmailTaken(email: string): Promise<boolean>;
@@ -45,6 +52,13 @@ export class MockUsersServiceClient implements UsersServiceClient {
     }
     if (user.idempotencyKeys.has(idempotencyKey)) {
       return Promise.resolve();
+    }
+    const target = newEmail.toLowerCase();
+    const takenByOther = [...this.users.values()].some(
+      (other) => other.userId !== userId && other.email.toLowerCase() === target,
+    );
+    if (takenByOther) {
+      return Promise.reject(new EmailTakenError(newEmail));
     }
     user.email = newEmail;
     user.idempotencyKeys.add(idempotencyKey);
