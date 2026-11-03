@@ -17,6 +17,8 @@ async function main(): Promise<void> {
   const usersClient = new MockUsersServiceClient();
   usersClient.seed('user-1', 'old@example.com');
   usersClient.seed('user-2', 'taken@example.com');
+  usersClient.seed('u23', 'u23@example.com');
+  usersClient.seed('u24', 'u24@example.com');
 
   const connection = await NativeConnection.connect({ address: process.env.TEMPORAL_ADDRESS ?? 'localhost:7233' });
   const worker = await Worker.create({
