@@ -6,9 +6,10 @@ Small, runnable examples of real-world Temporal workflows in TypeScript. Each us
 
 ## Use cases
 
-| Use case                                    | Demonstrates                                                  |
-| ------------------------------------------- | ------------------------------------------------------------- |
-| [Change email](./docs/change-email-flow.md) | signals, queries, timers, activity retries, idempotent commit |
+| Use case                                          | Demonstrates                                                   |
+| ------------------------------------------------- | -------------------------------------------------------------- |
+| [Change email](./docs/change-email-flow.md)       | signals, queries, timers, activity retries, idempotent commit  |
+| [Forgot password](./docs/forgot-password-flow.md) | updates + validators, resend loop, TTL, secrets out of history |
 
 ## Run
 

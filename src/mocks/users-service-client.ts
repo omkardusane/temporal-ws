@@ -16,11 +16,16 @@ export interface UsersServiceClient {
   getEmail(userId: string): Promise<string>;
   isEmailTaken(email: string): Promise<boolean>;
   updateEmail(userId: string, newEmail: string, idempotencyKey: string): Promise<void>;
+  findUserIdByEmail(email: string): Promise<string | undefined>;
+  setPasswordHash(userId: string, passwordHash: string, idempotencyKey: string): Promise<void>;
+  revokeSessions(userId: string): Promise<void>;
 }
 
 export interface MockUser {
   userId: string;
   email: string;
+  passwordHash?: string;
+  sessionsRevokedAt?: number;
   idempotencyKeys: Set<string>;
 }
 
@@ -63,6 +68,37 @@ export class MockUsersServiceClient implements UsersServiceClient {
     user.email = newEmail;
     user.idempotencyKeys.add(idempotencyKey);
     return Promise.resolve();
+  }
+
+  public findUserIdByEmail(email: string): Promise<string | undefined> {
+    const target = email.toLowerCase();
+    const user = [...this.users.values()].find((u) => u.email.toLowerCase() === target);
+    return Promise.resolve(user?.userId);
+  }
+
+  public setPasswordHash(userId: string, passwordHash: string, idempotencyKey: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) {
+      return Promise.reject(new UnknownUserError(userId));
+    }
+    if (!user.idempotencyKeys.has(idempotencyKey)) {
+      user.passwordHash = passwordHash;
+      user.idempotencyKeys.add(idempotencyKey);
+    }
+    return Promise.resolve();
+  }
+
+  public revokeSessions(userId: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) {
+      return Promise.reject(new UnknownUserError(userId));
+    }
+    user.sessionsRevokedAt = Date.now();
+    return Promise.resolve();
+  }
+
+  public get(userId: string): MockUser | undefined {
+    return this.users.get(userId);
   }
 
   public list(): { userId: string; email: string }[] {

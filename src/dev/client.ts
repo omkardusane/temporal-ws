@@ -2,6 +2,10 @@ import { Client, Connection } from '@temporalio/client';
 import { cancel, getState, submitNewOtp, submitOldOtp } from '../use-cases/change-email/signals';
 import { CHANGE_EMAIL_TASK_QUEUE, changeEmailWorkflowId } from '../use-cases/change-email/types';
 import { changeEmail } from '../use-cases/change-email/workflows';
+import { hashPassword } from '../use-cases/forgot-password/password';
+import * as fp from '../use-cases/forgot-password/signals';
+import { FORGOT_PASSWORD_TASK_QUEUE, forgotPasswordWorkflowId } from '../use-cases/forgot-password/types';
+import { forgotPassword } from '../use-cases/forgot-password/workflows';
 
 const USAGE = `usage:
   client start [userId=user-1] [newEmail=new@example.com]
@@ -10,7 +14,11 @@ const USAGE = `usage:
   client state [userId]
   client cancel [userId]
   client result [userId]
-  client users [userId]      current emails in the worker's mock users service`;
+  client users [userId]      current emails in the worker's mock users service
+
+  client forgot [email=old@example.com]          start a password reset
+  client reset <token> <password> [email]        submit the token from the mail (an Update)
+  client resend [email] | forgot-state [email] | forgot-cancel [email] | forgot-result [email]`;
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
@@ -23,6 +31,7 @@ async function main(): Promise<void> {
   const connection = await Connection.connect({ address: process.env.TEMPORAL_ADDRESS ?? 'localhost:7233' });
   const client = new Client({ connection });
   const handleFor = (userId = 'user-1') => client.workflow.getHandle(changeEmailWorkflowId(userId));
+  const forgotHandleFor = (email = 'old@example.com') => client.workflow.getHandle(forgotPasswordWorkflowId(email));
 
   switch (command) {
     case 'start': {
@@ -52,6 +61,37 @@ async function main(): Promise<void> {
       break;
     case 'result':
       console.log(await handleFor(args[0]).result());
+      break;
+    case 'forgot': {
+      const [email = 'old@example.com'] = args;
+      const handle = await client.workflow.start(forgotPassword, {
+        taskQueue: FORGOT_PASSWORD_TASK_QUEUE,
+        workflowId: forgotPasswordWorkflowId(email),
+        args: [{ email }],
+      });
+      console.log(`started ${handle.workflowId}; the reset link is in the worker log`);
+      break;
+    }
+    case 'reset':
+      console.log(
+        await forgotHandleFor(args[2]).executeUpdate(fp.resetPassword, {
+          args: [{ token: args[0], passwordHash: hashPassword(args[1]) }],
+        }),
+      );
+      break;
+    case 'resend':
+      await forgotHandleFor(args[0]).signal(fp.resend);
+      console.log('resend sent');
+      break;
+    case 'forgot-state':
+      console.log(await forgotHandleFor(args[0]).query(fp.getState));
+      break;
+    case 'forgot-cancel':
+      await forgotHandleFor(args[0]).signal(fp.cancel);
+      console.log('cancel sent');
+      break;
+    case 'forgot-result':
+      console.log(await forgotHandleFor(args[0]).result());
       break;
     default:
       console.log(USAGE);
