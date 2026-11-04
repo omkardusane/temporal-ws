@@ -4,6 +4,8 @@ import { MockEmailClient } from '../mocks/email-client';
 import { MockUsersServiceClient } from '../mocks/users-service-client';
 import { createActivities } from '../use-cases/change-email/activities';
 import { CHANGE_EMAIL_TASK_QUEUE } from '../use-cases/change-email/types';
+import { createActivities as createForgotPasswordActivities } from '../use-cases/forgot-password/activities';
+import { FORGOT_PASSWORD_TASK_QUEUE } from '../use-cases/forgot-password/types';
 
 // Dev only: the "mailbox" is this terminal, so the OTP shows up in the worker log.
 class ConsoleEmailClient extends MockEmailClient {
@@ -21,11 +23,18 @@ async function main(): Promise<void> {
   usersClient.seed('u24', 'u24@example.com');
 
   const connection = await NativeConnection.connect({ address: process.env.TEMPORAL_ADDRESS ?? 'localhost:7233' });
+  const emailClient = new ConsoleEmailClient();
   const worker = await Worker.create({
     connection,
     taskQueue: CHANGE_EMAIL_TASK_QUEUE,
     workflowsPath: require.resolve('../use-cases/change-email/workflows'),
-    activities: createActivities({ emailClient: new ConsoleEmailClient(), usersClient }),
+    activities: createActivities({ emailClient, usersClient }),
+  });
+  const forgotPasswordWorker = await Worker.create({
+    connection,
+    taskQueue: FORGOT_PASSWORD_TASK_QUEUE,
+    workflowsPath: require.resolve('../use-cases/forgot-password/workflows'),
+    activities: createForgotPasswordActivities({ emailClient, usersClient }),
   });
   // Dev only: read-only view of the in-memory users, used by `client users`.
   const usersPort = Number(process.env.DEV_USERS_PORT ?? 7300);
@@ -34,8 +43,8 @@ async function main(): Promise<void> {
     res.end(JSON.stringify(usersClient.list()));
   }).listen(usersPort, '127.0.0.1');
   console.log(`users snapshot at http://127.0.0.1:${usersPort}`);
-  console.log(`worker listening on task queue "${CHANGE_EMAIL_TASK_QUEUE}"`);
-  await worker.run();
+  console.log(`worker listening on task queues "${CHANGE_EMAIL_TASK_QUEUE}", "${FORGOT_PASSWORD_TASK_QUEUE}"`);
+  await Promise.all([worker.run(), forgotPasswordWorker.run()]);
 }
 
 main().catch((err: unknown) => {
